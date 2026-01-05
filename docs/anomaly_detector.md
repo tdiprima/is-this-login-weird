@@ -2,7 +2,7 @@ Let me walk through the entire anomaly detector script like you're learning it f
 
 ## The Big Picture
 
-**What we're building:** A system that looks at login attempts and says "Does this look normal or weird?"
+**What we're building:** A system that looks at login attempts and says "Is this wow or weird?" 🍔
 
 **How it works:** We show the computer thousands of normal logins, and it learns what "normal" looks like. Then when a new login happens, it checks if it fits the pattern or not.
 
