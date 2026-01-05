@@ -1,0 +1,10 @@
+[project]
+name = "is-this-login-weird"
+version = "0.1.0"
+description = "Behavior-based login anomaly detection experiments"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "pandas>=2.3.3",
+    "scikit-learn>=1.7.2",
+]
