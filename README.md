@@ -11,7 +11,7 @@ He knows his regulars.
 This project does the same thing—but for logins.
 
 Instead of asking  
-**"Is this malicious?"**. 
+**"Is this malicious?"**  
 it asks  
 **"Does this feel like someone who's usually here?"**
 
