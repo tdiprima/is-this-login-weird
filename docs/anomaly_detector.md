@@ -65,7 +65,7 @@ Most customers:
 
 * Local town folks (US)
 * Some tourists (UK, CA)
-* A few randoms (AU)
+* A few randoms (NZ) &mdash; Quincy Cox
 
 If someone walks in speaking Russian at 3am asking for **15 burgers immediately**, Bob is *not* checking Yelp reviews—he's squinting.
 
@@ -117,7 +117,7 @@ Bob notices that immediately.
 
 ## Fake Attacks = The Obvious Weirdos
 
-These are the **health inspector energy** moments:
+These are the **health inspector energy** (Hugo) moments:
 
 * Russia at 3am ordering 15 burgers
 * China at 2am pacing the counter
