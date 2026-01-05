@@ -42,3 +42,27 @@ print("Detected Anomalies:")
 print(anomalies)
 
 print(f"\nTotal anomalies found: {len(anomalies)}")
+
+# New login attempt to check
+new_login = pd.DataFrame({
+    'hour_of_day': [3],
+    'country': ['RU'],
+    'device_type': ['desktop'],
+    'login_success': [False],
+    'sessions_per_hour': [15]
+})
+
+# Encode it the same way
+new_login['country_encoded'] = le_country.transform(new_login['country'])
+new_login['device_encoded'] = le_device.transform(new_login['device_type'])
+new_login['login_success_encoded'] = new_login['login_success'].astype(int)
+
+# Predict
+new_X = new_login[features]
+prediction = iso_forest.predict(new_X)
+score = iso_forest.score_samples(new_X)
+
+if prediction[0] == -1:
+    print(f"🚨 ANOMALY DETECTED! Score: {score[0]:.3f}")
+else:
+    print(f"✅ Normal login. Score: {score[0]:.3f}")
