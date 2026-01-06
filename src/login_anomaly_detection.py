@@ -1,29 +1,44 @@
-import pandas as pd
-import numpy as np
-from sklearn.ensemble import IsolationForest
-from sklearn.preprocessing import LabelEncoder
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import classification_report, confusion_matrix
+import json
+import os
+
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import requests
 import seaborn as sns
+from sklearn.ensemble import IsolationForest
+from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+
+# ============================================
+# SLACK ALERT HELPER
+# ============================================
+
+def send_slack_alert(payload):
+    """Send alert to Slack using webhook."""
+    webhook_url = os.getenv("SLACK_WEBHOOK_URL")
+    if not webhook_url:
+        raise RuntimeError("Missing SLACK_WEBHOOK_URL")
+
+    response = requests.post(
+        webhook_url,
+        data=json.dumps(payload),
+        headers={"Content-Type": "application/json"}
+    )
+
+    if response.status_code != 200:
+        raise RuntimeError(
+            f"Slack webhook failed: {response.status_code}, {response.text}"
+        )
 
 # ============================================
 # 1. GENERATE FAKE DATASET
 # ============================================
-
-# Linda: "Alright! We're setting the vibe so randomness is ✨repeatable✨"
-# This makes sure every run gives the SAME random results (debug-friendly)
 np.random.seed(42)
 
-# Bob: "5,000 logins. Not too many. Not too few. Like a good lunch rush."
 n_samples = 5000
 
-# Tina: "These are hours of the day... but with probabilities... I like structure."
-# np.random.choice():
-# - Pick values from range(24) → hours 0–23
-# - n_samples times
-# - p = probability for EACH hour being chosen
-# Translation: logins happen more during normal human hours, less at 3am
 hours = np.random.choice(range(24), n_samples, p=[
     0.02, 0.01, 0.01, 0.01, 0.01, 0.02,  # 0-5am (people should be asleep)
     0.03, 0.04, 0.06, 0.08, 0.06, 0.05,  # 6-11am (coffee-powered humans)
@@ -31,33 +46,20 @@ hours = np.random.choice(range(24), n_samples, p=[
     0.08, 0.07, 0.06, 0.04, 0.03, 0.02   # 6-11pm (doomscroll hours)
 ])
 
-# Gene: "Countries! Like people logging in from places! Geography rocks!"
-# np.random.choice again, but for strings this time
 countries = np.random.choice(
     ['US', 'UK', 'CA', 'DE', 'FR', 'AU'],
     n_samples,
     p=[0.4, 0.2, 0.15, 0.1, 0.1, 0.05]
 )
 
-# Louise: "Most people use phones. Tablets are for weirdos."
 devices = np.random.choice(
     ['mobile', 'desktop', 'tablet'],
     n_samples,
     p=[0.6, 0.35, 0.05]
 )
 
-# Bob: "Most logins work. Because if they didn't, I'd hear about it."
 login_success = np.random.choice([True, False], n_samples, p=[0.95, 0.05])
 
-# Tina (deep breath): "Okay... this part is IMPORTANT."
-
-# np.where(condition, value_if_true, value_if_false)
-# Think: IF / ELSE but vectorized (runs on whole arrays at once)
-
-# Translation:
-# - If device is mobile → avg ~3 sessions/hour
-# - If desktop → avg ~5 sessions/hour
-# - Else (tablet) → avg ~2 sessions/hour
 sessions = np.where(
     devices == 'mobile',
     np.random.poisson(3, n_samples),  # Poisson = "count-ish things"
@@ -68,7 +70,6 @@ sessions = np.where(
     )
 )
 
-# Linda: "Put it all in a nice little table!"
 df = pd.DataFrame({
     'hour_of_day': hours,
     'country': countries,
@@ -81,7 +82,6 @@ df = pd.DataFrame({
 # ADD ACTUAL SKETCHY STUFF
 # ============================================
 
-# Louise: "Now we add CRIME."
 anomalies = pd.DataFrame({
     'hour_of_day': [3, 2, 22],
     'country': ['RU', 'CN', 'BR'],
@@ -92,7 +92,6 @@ anomalies = pd.DataFrame({
 
 df = pd.concat([df, anomalies], ignore_index=True)
 
-# Bob: "Label the bad guys so we can see if the model figures it out."
 # 0 = normal, 1 = anomaly
 df['true_anomaly'] = 0
 df.loc[df.index[-3:], 'true_anomaly'] = 1
@@ -103,25 +102,16 @@ print(f"Dataset created: {len(df)} rows, {df['true_anomaly'].sum()} true anomali
 # 2. ENCODE CATEGORICAL FEATURES
 # ============================================
 
-# Tina: "Models don't speak words. They speak numbers."
 df_encoded = df.copy()
 
-# LabelEncoder:
-# Turns categories into integers
-# Example: ['US', 'UK', 'FR'] → [2, 1, 0] (order doesn't mean anything)
 le_country = LabelEncoder()
 le_device = LabelEncoder()
 le_success = LabelEncoder()
 
-# fit_transform():
-# - fit = learn the mapping
-# - transform = apply it
-# Doing both at once
 df_encoded['country_encoded'] = le_country.fit_transform(df['country'])
 df_encoded['device_encoded'] = le_device.fit_transform(df['device_type'])
 df_encoded['login_success_encoded'] = le_success.fit_transform(df['login_success'])
 
-# These are the actual features the model sees
 features = [
     'hour_of_day',
     'country_encoded',
@@ -136,7 +126,7 @@ X = df_encoded[features]
 # 3. TRAIN / TEST SPLIT
 # ============================================
 
-# Bob: "Train on most of it. Test on some of it. Like tasting the burger."
+# Train on most of it. Test on some of it.
 X_train, X_test, y_train, y_test = train_test_split(
     X,
     df['true_anomaly'],
@@ -157,15 +147,12 @@ X_test_df = X.loc[test_indices]
 # 4. TRAIN ISOLATION FOREST
 # ============================================
 
-# Tina: "Isolation Forest works by isolating weird points quickly."
-# Weird = fewer splits needed = suspicious
 iso_forest = IsolationForest(
     contamination=0.005,  # Expect ~0.5% anomalies
     random_state=42,
     n_estimators=100      # Number of trees in the forest
 )
 
-# fit():
 # Learn what "normal" looks like
 iso_forest.fit(X_train_df)
 
@@ -173,13 +160,10 @@ iso_forest.fit(X_train_df)
 # 5. PREDICT ON TEST SET
 # ============================================
 
-# predict():
-# Returns:
 #  1 = normal
 # -1 = anomaly (yes, it's weird)
 test_predictions = iso_forest.predict(X_test_df)
 
-# score_samples():
 # Lower score = more suspicious
 test_scores = iso_forest.score_samples(X_test_df)
 
@@ -194,7 +178,6 @@ df.loc[test_indices, 'anomaly_score'] = test_scores
 # 6. EVALUATE
 # ============================================
 
-# Gene: "Numbers!!!"
 print("\n" + "="*50)
 print("CONFUSION MATRIX")
 print("="*50)
@@ -210,7 +193,7 @@ print(classification_report(y_test, test_predictions_binary))
 # 7. ANALYZE FALSE POSITIVES
 # ============================================
 
-# Louise: "Who did we accuse that didn't deserve it?"
+# Who did we accuse that didn't deserve it?
 test_df = df.loc[test_indices].copy()
 
 false_positives = test_df[
@@ -246,7 +229,7 @@ print(true_positives[['hour_of_day', 'country', 'device_type',
 
 def analyze_feature_contributions(row_data, model, feature_names, X_train_df):
     """
-    Bob voice: "What specifically made THIS login weird?"
+    What specifically made THIS login weird?
 
     Strategy:
     - Score the row
@@ -305,10 +288,6 @@ if len(true_positives) > 0:
 # 9. VISUALS & NEW LOGIN TEST
 # ============================================
 
-# Final vibe:
-# - Lower score = sketchy
-# - Isolation Forest doesn't know "bad"
-# - It only knows "weird"
 # Plot 1: Anomaly Score Distribution
 plt.figure(figsize=(12, 4))
 
@@ -404,5 +383,71 @@ print("\nFeature contributions:")
 for feat, contrib in sorted(new_contributions.items(), key=lambda x: x[1], reverse=True):
     print(f"  {feat}: {contrib:.4f}")
 
-# if score < -0.75 and sessions_per_hour > 10:
-#     alert = True
+# ============================================
+# 11. SEND SLACK ALERT IF ANOMALY DETECTED
+# ============================================
+
+row = new_login.iloc[0]
+is_anomaly = prediction[0] == -1
+severity = "HIGH" if score[0] < -0.8 else "MEDIUM"
+
+# Top 3 suspicious features
+top_features = sorted(
+    new_contributions.items(),
+    key=lambda x: x[1],
+    reverse=True
+)[:3]
+
+feature_text = "\n".join(
+    [f"• *{feat}*: {contrib:.4f}" for feat, contrib in top_features]
+)
+
+# Build Slack payload using Block Kit
+slack_payload = {
+    "blocks": [
+        {
+            "type": "header",
+            "text": {
+                "type": "plain_text",
+                "text": "🚨 Anomalous Login Detected",
+            }
+        },
+        {
+            "type": "section",
+            "fields": [
+                {"type": "mrkdwn", "text": f"*Severity:*\n{severity}"},
+                {"type": "mrkdwn", "text": f"*Anomaly Score:*\n{score[0]:.4f}"},
+                {"type": "mrkdwn", "text": f"*Hour of Day:*\n{row['hour_of_day']}"},
+                {"type": "mrkdwn", "text": f"*Country:*\n{row['country']}"},
+                {"type": "mrkdwn", "text": f"*Device:*\n{row['device_type']}"},
+                {"type": "mrkdwn", "text": f"*Sessions/hr:*\n{row['sessions_per_hour']}"},
+            ]
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": "*Top Suspicious Features:*\n" + feature_text
+            }
+        },
+        {
+            "type": "context",
+            "elements": [
+                {
+                    "type": "mrkdwn",
+                    "text": "Model: Isolation Forest • Detection Type: Behavioral Anomaly"
+                }
+            ]
+        }
+    ]
+}
+
+# Trigger alert with rule-based threshold
+if is_anomaly and score[0] < -0.72:
+    try:
+        send_slack_alert(slack_payload)
+        print("\n✅ Slack alert sent successfully!")
+    except RuntimeError as e:
+        print(f"\n⚠️  Failed to send Slack alert: {e}")
+else:
+    print("\n📊 No alert triggered (either not an anomaly or score above threshold)")
