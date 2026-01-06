@@ -404,5 +404,5 @@ print("\nFeature contributions:")
 for feat, contrib in sorted(new_contributions.items(), key=lambda x: x[1], reverse=True):
     print(f"  {feat}: {contrib:.4f}")
 
-if score < -0.75 and sessions_per_hour > 10:
-    alert = True
+# if score < -0.75 and sessions_per_hour > 10:
+#     alert = True
