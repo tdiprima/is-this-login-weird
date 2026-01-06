@@ -1,3 +1,5 @@
+$ python anomaly_detector.py
+
 Dataset created: 5003 rows, 3 true anomalies
 
 ==================================================
@@ -41,8 +43,8 @@ TRUE POSITIVES (1 cases)
 FEATURE CONTRIBUTIONS TO ANOMALY DETECTION
 ==================================================
 
---- FALSE POSITIVE EXAMPLE 1 ---
-Row: {'hour_of_day': 9, 'country': 'UK', 'device_type': 'tablet', 'sessions_per_hour': 0}
+--- FALSE POSITIVE EXAMPLE ---
+Row: {'hour_of_day': 9, 'country': 'UK', 'device_type': 'tablet', 'login_success': False, 'sessions_per_hour': 0}
 Anomaly score: -0.6740
 
 Feature contributions (higher = more suspicious):
@@ -53,7 +55,7 @@ Feature contributions (higher = more suspicious):
   hour_of_day: -0.0001
 
 --- TRUE POSITIVE EXAMPLE ---
-Row: {'hour_of_day': 2, 'country': 'CN', 'device_type': 'desktop', 'sessions_per_hour': 20}
+Row: {'hour_of_day': 2, 'country': 'CN', 'device_type': 'desktop', 'login_success': False, 'sessions_per_hour': 20}
 Anomaly score: -0.7393
 
 Feature contributions (higher = more suspicious):
@@ -68,7 +70,7 @@ Feature contributions (higher = more suspicious):
 ==================================================
 TESTING NEW LOGIN
 ==================================================
-New login: {'hour_of_day': 3, 'country': 'RU', 'device_type': 'desktop', 'sessions_per_hour': 15}
+New login: {'hour_of_day': 3, 'country': 'RU', 'device_type': 'desktop', 'login_success': False, 'sessions_per_hour': 15}
 Anomaly score: -0.7329
 🚨 ANOMALY DETECTED!
 
