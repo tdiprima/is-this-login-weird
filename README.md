@@ -26,9 +26,6 @@ This project explores unsupervised anomaly detection on login data — no labele
 # Install dependencies
 uv sync
 
-# (Optional) Generate standalone CSV data
-python src/generate_synthetic_data.py
-
 # Run the full detection pipeline
 cd src/login_anomaly_detection/
 python main.py
