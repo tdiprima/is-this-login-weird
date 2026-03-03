@@ -27,10 +27,11 @@ This project explores unsupervised anomaly detection on login data — no labele
 uv sync
 
 # (Optional) Generate standalone CSV data
-python scripts/generate_synthetic_data.py
+python src/generate_synthetic_data.py
 
 # Run the full detection pipeline
-python src/main.py
+cd src/login_anomaly_detection/
+python main.py
 ```
 
 To enable Slack alerts, set your webhook URL:
